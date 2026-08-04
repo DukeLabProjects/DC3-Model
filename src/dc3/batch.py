@@ -7,7 +7,7 @@ from typing import Mapping
 
 import pandas as pd
 
-from dc3.core import classify_dc3, describe_dc3
+from dc3.core import classify_dc3, describe_dc3, thermal_sensation_label
 from dc3.exceptions import DC3ValidationError
 from dc3.preprocessing import (
     normalize_acceptability,
@@ -33,6 +33,40 @@ class ValidationReport:
         Canonical fields that are mapped to source columns.
     row_count:
         Number of rows in the dataframe.
+
+    Examples
+    --------
+    .. code-block:: python
+
+       # python -m pip install dc3model_v1
+       import pandas as pd
+       from dc3 import validate_dataframe
+
+       df = pd.DataFrame(
+           {
+               "TS": [0],
+               "TP": ["no_change"],
+               "TA": [1],
+           }
+       )
+
+       report = validate_dataframe(
+           df,
+           columns={
+               "thermal_sensation": "TS",
+               "thermal_preference": "TP",
+               "thermal_acceptability": "TA",
+           },
+       )
+       print(report.valid)
+       print(report.row_count)
+
+    Expected output:
+
+    .. code-block:: text
+
+       True
+       1
     """
 
     valid: bool
@@ -43,7 +77,82 @@ class ValidationReport:
 
 
 def validate_dataframe(df: pd.DataFrame, columns: Mapping[str, str]) -> ValidationReport:
-    """Validate a dataframe and user column mapping before processing."""
+    """Validate a dataframe and user column mapping before processing.
+
+    Parameters
+    ----------
+    df:
+        Source pandas dataframe.
+    columns:
+        Mapping from canonical DC3 field names to source dataframe columns.
+        Required keys are ``thermal_sensation``, ``thermal_preference``, and
+        ``thermal_acceptability``.
+
+    Returns
+    -------
+    ValidationReport
+        Validation summary. A report with ``valid=True`` can be passed to
+        :func:`process_dataframe`.
+
+    .. note::
+
+       Optional fields such as ``country``, ``city``, ``season``, and
+       environmental variables can also be mapped. Unknown canonical field
+       names raise ``DC3ValidationError`` so misspellings are caught early.
+
+    Examples
+    --------
+    Valid mapping:
+
+    .. code-block:: python
+
+       # python -m pip install dc3model_v1
+       import pandas as pd
+       from dc3 import validate_dataframe
+
+       df = pd.DataFrame(
+           {
+               "Thermal sensation": [0, 1],
+               "Thermal preference": ["no_change", "cooler"],
+               "Thermal acceptability": [1, 1],
+           }
+       )
+       columns = {
+           "thermal_sensation": "Thermal sensation",
+           "thermal_preference": "Thermal preference",
+           "thermal_acceptability": "Thermal acceptability",
+       }
+
+       report = validate_dataframe(df, columns)
+       print(report.valid)
+       print(report.mapped_fields)
+
+    Expected output:
+
+    .. code-block:: text
+
+       True
+       ('thermal_sensation', 'thermal_preference', 'thermal_acceptability')
+
+    Missing mapping:
+
+    .. code-block:: python
+
+       import pandas as pd
+       from dc3 import validate_dataframe
+
+       df = pd.DataFrame({"TS": [0]})
+       report = validate_dataframe(df, columns={"thermal_sensation": "TS"})
+       print(report.valid)
+       print(report.missing_required_fields)
+
+    Expected output:
+
+    .. code-block:: text
+
+       False
+       ('thermal_preference', 'thermal_acceptability')
+    """
 
     if not isinstance(df, pd.DataFrame):
         raise DC3ValidationError("df must be a pandas DataFrame")
@@ -80,6 +189,82 @@ def process_dataframe(
     Invalid rows are retained by default with ``dc3_valid=False`` and a clear
     ``dc3_error`` message. Set ``keep_invalid=False`` to drop invalid rows from
     the returned dataframe.
+
+    Parameters
+    ----------
+    df:
+        Source pandas dataframe.
+    columns:
+        Mapping from canonical DC3 field names to source dataframe columns.
+    keep_invalid:
+        Default is ``True``. Invalid rows remain in the returned dataframe
+        with ``dc3_valid=False``. Set to ``False`` to return only valid rows.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Original columns plus DC3 outputs such as ``dc3_label``, ``dc3_code``,
+        ``observed_comfort``, ``is_z_class``, and ``dc3_error``.
+
+    Examples
+    --------
+    Small dataframe:
+
+    .. code-block:: python
+
+       # python -m pip install dc3model_v1
+       import pandas as pd
+       from dc3 import process_dataframe
+
+       df = pd.DataFrame(
+           {
+               "TS": [0, 1, 0],
+               "TP": ["no_change", "cooler", "no_change"],
+               "TA": [1, 1, 0],
+               "Country": ["India", "India", "India"],
+           }
+       )
+       columns = {
+           "thermal_sensation": "TS",
+           "thermal_preference": "TP",
+           "thermal_acceptability": "TA",
+           "country": "Country",
+       }
+
+       processed = process_dataframe(df, columns)
+       print(processed[["dc3_label", "dc3_code", "observed_comfort", "is_z_class"]].to_string(index=False))
+
+    Expected output:
+
+    .. code-block:: text
+
+        dc3_label  dc3_code  observed_comfort  is_z_class
+                D        11              True       False
+               E-        13             False       False
+                Z        22             False        True
+
+    Drop invalid rows:
+
+    .. code-block:: python
+
+       import pandas as pd
+       from dc3 import process_dataframe
+
+       df = pd.DataFrame({"TS": [0, None], "TP": ["no_change", "warmer"], "TA": [1, 1]})
+       columns = {
+           "thermal_sensation": "TS",
+           "thermal_preference": "TP",
+           "thermal_acceptability": "TA",
+       }
+
+       processed = process_dataframe(df, columns, keep_invalid=False)
+       print(len(processed))
+
+    Expected output:
+
+    .. code-block:: text
+
+       1
     """
 
     report = validate_dataframe(df, columns)
@@ -105,7 +290,49 @@ def process_dataframe(
 
 
 def summarise_dc3(df: pd.DataFrame, *, label_column: str = "dc3_label") -> pd.DataFrame:
-    """Summarise DC3 class counts and percentages for a processed dataframe."""
+    """Summarise DC3 class counts and percentages for a processed dataframe.
+
+    Parameters
+    ----------
+    df:
+        Processed dataframe that contains a DC3 label column.
+    label_column:
+        Default is ``"dc3_label"``. Change this when summarising a dataframe
+        that uses a custom label column name.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Columns: ``dc3_label``, ``count``, and ``percentage``.
+
+    Examples
+    --------
+    .. code-block:: python
+
+       # python -m pip install dc3model_v1
+       import pandas as pd
+       from dc3 import process_dataframe, summarise_dc3
+
+       df = pd.DataFrame({"TS": [0, 0, 1], "TP": ["no_change", "no_change", "cooler"], "TA": [1, 0, 1]})
+       columns = {
+           "thermal_sensation": "TS",
+           "thermal_preference": "TP",
+           "thermal_acceptability": "TA",
+       }
+
+       processed = process_dataframe(df, columns)
+       summary = summarise_dc3(processed)
+       print(summary.sort_values("dc3_label").to_string(index=False))
+
+    Expected output:
+
+    .. code-block:: text
+
+        dc3_label  count  percentage
+               E-      1   33.333333
+                D      1   33.333333
+                Z      1   33.333333
+    """
 
     if label_column not in df.columns:
         raise DC3ValidationError(f"{label_column!r} is not present in the dataframe")
@@ -138,7 +365,7 @@ def _process_row(row: pd.Series, columns: Mapping[str, str]) -> dict:
             "dc3_label": description["label"],
             "dc3_code": description["code"],
             "thermal_sensation_normalized": sensation.value,
-            "thermal_sensation_label": description["thermal_sensation_label"],
+            "thermal_sensation_label": thermal_sensation_label(sensation.value),
             "thermal_preference_normalized": preference.value,
             "thermal_acceptability_normalized": acceptability.value,
             "preference_group": description["preference_group"],

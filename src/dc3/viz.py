@@ -14,7 +14,31 @@ from dc3.exceptions import DC3ValidationError
 
 
 def dc3_class_order() -> list[str]:
-    """Return the canonical display order for DC3 classes."""
+    """Return the canonical display order for DC3 classes.
+
+    Returns
+    -------
+    list[str]
+        DC3 labels ordered from cold/left to hot/right, with ``Z`` placed last.
+
+    Examples
+    --------
+    .. code-block:: python
+
+       # python -m pip install dc3model_v1
+       from dc3 import dc3_class_order
+
+       order = dc3_class_order()
+       print(order[:3])
+       print(order[-1])
+
+    Expected output:
+
+    .. code-block:: text
+
+       ['A-', 'A', 'A+']
+       Z
+    """
 
     labels = []
     for letter in ["A", "B", "C", "D", "E", "F", "G"]:
@@ -24,7 +48,31 @@ def dc3_class_order() -> list[str]:
 
 
 def dc3_color_map() -> dict[str, str]:
-    """Return the DC3 class colour map used by Duke et al. style plots."""
+    """Return the DC3 class colour map used by Duke et al. style plots.
+
+    Returns
+    -------
+    dict[str, str]
+        Mapping from DC3 labels to hex colour strings.
+
+    Examples
+    --------
+    .. code-block:: python
+
+       # python -m pip install dc3model_v1
+       from dc3 import dc3_color_map
+
+       colors = dc3_color_map()
+       print(colors["A-"])
+       print(colors["Z"])
+
+    Expected output:
+
+    .. code-block:: text
+
+       #2166ac
+       #475569
+    """
 
     return dict(zip(dc3_class_order(), _dc3_palette(), strict=False))
 
@@ -44,9 +92,35 @@ def dc3_distribution(
     label_column:
         Name of the column that stores DC3 labels.
     include_zero_count_classes:
-        When true, all 22 canonical DC3 labels are included even if the
+        Default is ``True``. When true, all 22 canonical DC3 labels are included even if the
         dataset has no records in some classes. This is useful for dashboards
         because the axis does not jump around as filters are changed.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Columns: ``dc3_label``, ``count``, and ``percentage``.
+
+    Examples
+    --------
+    .. code-block:: python
+
+       # python -m pip install dc3model_v1
+       import pandas as pd
+       from dc3 import dc3_distribution
+
+       df = pd.DataFrame({"dc3_label": ["D", "D", "E-", "Z"]})
+       distribution = dc3_distribution(df, include_zero_count_classes=False)
+       print(distribution.to_string(index=False))
+
+    Expected output:
+
+    .. code-block:: text
+
+        dc3_label  count  percentage
+                D      2        50.0
+               E-      1        25.0
+                Z      1        25.0
     """
 
     _require_columns(df, [label_column])
@@ -84,6 +158,39 @@ def dc3_matrix(
     represent preference direction: ``cooler``, ``no_change``, and ``warmer``.
     The ``Z`` class is intentionally excluded because it is a flag category
     rather than a point in the 7-by-3 state space.
+
+    Parameters
+    ----------
+    df:
+        Processed dataframe containing DC3 labels.
+    label_column:
+        Default is ``"dc3_label"``.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Rows ``A`` through ``G`` with columns ``cooler``, ``no_change``, and
+        ``warmer``.
+
+    Examples
+    --------
+    .. code-block:: python
+
+       # python -m pip install dc3model_v1
+       import pandas as pd
+       from dc3 import dc3_matrix
+
+       df = pd.DataFrame({"dc3_label": ["D", "D+", "E-", "Z"]})
+       matrix = dc3_matrix(df)
+       row_d = matrix[matrix["thermal_sensation_label"] == "D"]
+       print(row_d[["cooler", "no_change", "warmer"]].to_string(index=False))
+
+    Expected output:
+
+    .. code-block:: text
+
+        cooler  no_change  warmer
+             0          1       1
     """
 
     _require_columns(df, [label_column])
@@ -111,6 +218,47 @@ def environmental_summary(
 
     Non-numeric values are coerced to missing values. Rows whose group is
     missing are omitted from grouped summaries.
+
+    Parameters
+    ----------
+    df:
+        Dataframe containing a grouping column and numeric environmental
+        columns.
+    value_columns:
+        Iterable of numeric source columns to summarise.
+    groupby:
+        Default is ``"dc3_label"``. Column used for grouping.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Summary with count, mean, median, min, max, 25th percentile, and 75th
+        percentile for each variable/group pair.
+
+    Examples
+    --------
+    .. code-block:: python
+
+       # python -m pip install dc3model_v1
+       import pandas as pd
+       from dc3 import environmental_summary
+
+       df = pd.DataFrame(
+           {
+               "dc3_label": ["D", "D", "E-"],
+               "Air temperature": [24.0, 26.0, 28.0],
+           }
+       )
+       summary = environmental_summary(df, ["Air temperature"])
+       print(summary[["dc3_label", "variable", "count", "mean"]].to_string(index=False))
+
+    Expected output:
+
+    .. code-block:: text
+
+        dc3_label        variable  count  mean
+                D Air temperature      2  25.0
+               E- Air temperature      1  28.0
     """
 
     value_columns = list(value_columns)
@@ -156,7 +304,41 @@ def observed_comfort_distribution(
     *,
     comfort_column: str = "observed_comfort",
 ) -> pd.DataFrame:
-    """Return comfortable/uncomfortable counts and percentages."""
+    """Return comfortable/uncomfortable counts and percentages.
+
+    Parameters
+    ----------
+    df:
+        Dataframe containing observed comfort values.
+    comfort_column:
+        Default is ``"observed_comfort"``.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Three rows: comfortable, uncomfortable, and unknown.
+
+    Examples
+    --------
+    .. code-block:: python
+
+       # python -m pip install dc3model_v1
+       import pandas as pd
+       from dc3 import observed_comfort_distribution
+
+       df = pd.DataFrame({"observed_comfort": [True, False, False, None]})
+       distribution = observed_comfort_distribution(df)
+       print(distribution.to_string(index=False))
+
+    Expected output:
+
+    .. code-block:: text
+
+        observed_comfort  count  percentage
+             comfortable      1        25.0
+           uncomfortable      2        50.0
+                  unknown      1        25.0
+    """
 
     _require_columns(df, [comfort_column])
     values = df[comfort_column].map(
@@ -181,7 +363,38 @@ def observed_comfort_distribution(
 
 
 def z_class_summary(df: pd.DataFrame, *, z_column: str = "is_z_class") -> dict:
-    """Return count and percentage information for Z-class records."""
+    """Return count and percentage information for Z-class records.
+
+    Parameters
+    ----------
+    df:
+        Dataframe containing a Z-class boolean column.
+    z_column:
+        Default is ``"is_z_class"``.
+
+    Returns
+    -------
+    dict
+        Keys: ``total_rows``, ``z_class_rows``, and ``z_class_percentage``.
+
+    Examples
+    --------
+    .. code-block:: python
+
+       # python -m pip install dc3model_v1
+       import pandas as pd
+       from dc3 import z_class_summary
+
+       df = pd.DataFrame({"is_z_class": [False, True, False, True]})
+       summary = z_class_summary(df)
+       print(summary)
+
+    Expected output:
+
+    .. code-block:: text
+
+       {'total_rows': 4, 'z_class_rows': 2, 'z_class_percentage': 50.0}
+    """
 
     _require_columns(df, [z_column])
     total = len(df)
@@ -204,6 +417,48 @@ def z_class_match_table(
     By default, the function groups Z-class records by the internally
     normalised sensation, preference, and acceptability columns. These are the
     fields that explain why the row matched the Z-class condition.
+
+    Parameters
+    ----------
+    df:
+        Processed dataframe containing Z-class flags and grouping columns.
+    z_column:
+        Default is ``"is_z_class"``.
+    group_columns:
+        Default is ``None``. When omitted, grouped by normalised sensation,
+        sensation label, preference, and acceptability.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Grouped Z-class counts and percentages.
+
+    Examples
+    --------
+    .. code-block:: python
+
+       # python -m pip install dc3model_v1
+       import pandas as pd
+       from dc3 import process_dataframe, z_class_match_table
+
+       df = pd.DataFrame({"TS": [0, 0, 1], "TP": ["no_change", "no_change", "cooler"], "TA": [0, 0, 1]})
+       processed = process_dataframe(
+           df,
+           columns={
+               "thermal_sensation": "TS",
+               "thermal_preference": "TP",
+               "thermal_acceptability": "TA",
+           },
+       )
+       matches = z_class_match_table(processed)
+       print(matches[["thermal_sensation_label", "count", "percentage"]].to_string(index=False))
+
+    Expected output:
+
+    .. code-block:: text
+
+        thermal_sensation_label  count  percentage
+                              D      2       100.0
     """
 
     default_groups = [
@@ -224,14 +479,77 @@ def z_class_match_table(
 
 
 def z_class_records(df: pd.DataFrame, *, z_column: str = "is_z_class") -> pd.DataFrame:
-    """Return only Z-class records from a processed dataframe."""
+    """Return only Z-class records from a processed dataframe.
+
+    Parameters
+    ----------
+    df:
+        Processed dataframe.
+    z_column:
+        Default is ``"is_z_class"``.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Copy of rows where ``z_column`` is truthy.
+
+    Examples
+    --------
+    .. code-block:: python
+
+       # python -m pip install dc3model_v1
+       import pandas as pd
+       from dc3 import z_class_records
+
+       df = pd.DataFrame({"dc3_label": ["D", "Z"], "is_z_class": [False, True]})
+       z_rows = z_class_records(df)
+       print(z_rows["dc3_label"].tolist())
+
+    Expected output:
+
+    .. code-block:: text
+
+       ['Z']
+    """
 
     _require_columns(df, [z_column])
     return df[df[z_column].fillna(False).astype(bool)].copy()
 
 
 def plot_dc3_distribution(distribution: pd.DataFrame):
-    """Build a Plotly bar chart from :func:`dc3_distribution` output."""
+    """Build a Plotly bar chart from :func:`dc3_distribution` output.
+
+    Parameters
+    ----------
+    distribution:
+        Dataframe returned by :func:`dc3_distribution`.
+
+    Returns
+    -------
+    plotly.graph_objects.Figure
+        Plotly bar chart figure.
+
+    Examples
+    --------
+    .. code-block:: python
+
+       # python -m pip install "dc3model_v1[viz]"
+       import pandas as pd
+       from dc3 import dc3_distribution, plot_dc3_distribution
+
+       distribution = dc3_distribution(
+           pd.DataFrame({"dc3_label": ["D", "E-", "Z"]}),
+           include_zero_count_classes=False,
+       )
+       fig = plot_dc3_distribution(distribution)
+       print(len(fig.data))
+
+    Expected output:
+
+    .. code-block:: text
+
+       1
+    """
 
     px = _require_plotly_express()
     _require_columns(distribution, ["dc3_label", "count"])
@@ -249,7 +567,36 @@ def plot_dc3_distribution(distribution: pd.DataFrame):
 
 
 def plot_dc3_matrix(matrix: pd.DataFrame):
-    """Build a Plotly heatmap from :func:`dc3_matrix` output."""
+    """Build a Plotly heatmap from :func:`dc3_matrix` output.
+
+    Parameters
+    ----------
+    matrix:
+        Dataframe returned by :func:`dc3_matrix`.
+
+    Returns
+    -------
+    plotly.graph_objects.Figure
+        Plotly heatmap figure.
+
+    Examples
+    --------
+    .. code-block:: python
+
+       # python -m pip install "dc3model_v1[viz]"
+       import pandas as pd
+       from dc3 import dc3_matrix, plot_dc3_matrix
+
+       matrix = dc3_matrix(pd.DataFrame({"dc3_label": ["D", "D+"]}))
+       fig = plot_dc3_matrix(matrix)
+       print(fig.data[0].type)
+
+    Expected output:
+
+    .. code-block:: text
+
+       heatmap
+    """
 
     go = _require_plotly_graph_objects()
     _require_columns(matrix, ["thermal_sensation_label", "cooler", "no_change", "warmer"])
@@ -268,7 +615,36 @@ def plot_dc3_matrix(matrix: pd.DataFrame):
 
 
 def plot_observed_comfort_distribution(distribution: pd.DataFrame):
-    """Build a Plotly donut chart from observed comfort distribution output."""
+    """Build a Plotly donut chart from observed comfort distribution output.
+
+    Parameters
+    ----------
+    distribution:
+        Dataframe returned by :func:`observed_comfort_distribution`.
+
+    Returns
+    -------
+    plotly.graph_objects.Figure
+        Plotly pie/donut figure.
+
+    Examples
+    --------
+    .. code-block:: python
+
+       # python -m pip install "dc3model_v1[viz]"
+       import pandas as pd
+       from dc3 import observed_comfort_distribution, plot_observed_comfort_distribution
+
+       distribution = observed_comfort_distribution(pd.DataFrame({"observed_comfort": [True, False]}))
+       fig = plot_observed_comfort_distribution(distribution)
+       print(fig.data[0].type)
+
+    Expected output:
+
+    .. code-block:: text
+
+       pie
+    """
 
     px = _require_plotly_express()
     _require_columns(distribution, ["observed_comfort", "count"])
@@ -287,7 +663,36 @@ def plot_observed_comfort_distribution(distribution: pd.DataFrame):
 
 
 def plot_z_class_matches(match_table: pd.DataFrame):
-    """Build a Plotly bar chart for Z-class matching records."""
+    """Build a Plotly bar chart for Z-class matching records.
+
+    Parameters
+    ----------
+    match_table:
+        Dataframe returned by :func:`z_class_match_table`.
+
+    Returns
+    -------
+    plotly.graph_objects.Figure
+        Plotly bar chart figure.
+
+    Examples
+    --------
+    .. code-block:: python
+
+       # python -m pip install "dc3model_v1[viz]"
+       import pandas as pd
+       from dc3 import plot_z_class_matches
+
+       match_table = pd.DataFrame({"thermal_sensation_label": ["D"], "count": [2], "percentage": [100.0]})
+       fig = plot_z_class_matches(match_table)
+       print(fig.data[0].type)
+
+    Expected output:
+
+    .. code-block:: text
+
+       bar
+    """
 
     px = _require_plotly_express()
     _require_columns(match_table, ["count"])
@@ -321,6 +726,47 @@ def export_figure(
 
     Static export uses Plotly's Kaleido backend. Install visualisation
     dependencies with ``python -m pip install -e .[viz]``.
+
+    Parameters
+    ----------
+    fig:
+        Plotly figure object.
+    format:
+        Default is ``"png"``. Accepted values are ``"png"``, ``"svg"``, and
+        ``"pdf"``.
+    width:
+        Default is ``1400`` pixels.
+    height:
+        Default is ``900`` pixels.
+    scale:
+        Default is ``2.0``. Higher values increase raster output resolution.
+
+    Returns
+    -------
+    bytes
+        Static figure file bytes.
+
+    Examples
+    --------
+    .. code-block:: python
+
+       # python -m pip install "dc3model_v1[viz]"
+       import pandas as pd
+       from dc3 import dc3_distribution, export_figure, plot_dc3_distribution
+
+       distribution = dc3_distribution(
+           pd.DataFrame({"dc3_label": ["D", "E-", "Z"]}),
+           include_zero_count_classes=False,
+       )
+       fig = plot_dc3_distribution(distribution)
+       png_bytes = export_figure(fig, format="png", width=800, height=500, scale=1.0)
+       print(len(png_bytes) > 0)
+
+    Expected output:
+
+    .. code-block:: text
+
+       True
     """
 
     fmt = format.lower().strip(".")

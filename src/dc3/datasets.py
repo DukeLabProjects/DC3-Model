@@ -76,6 +76,27 @@ def ashrae_db2_path() -> Path:
     The path is suitable for local file operations when the package is installed
     from source or as an editable install. For zipped wheels, prefer
     :func:`load_ashrae_db2`, which uses importlib resources directly.
+
+    Returns
+    -------
+    pathlib.Path
+        Path to ``ashrae_db2.csv`` inside the installed package resources.
+
+    Examples
+    --------
+    .. code-block:: python
+
+       # python -m pip install dc3model_v1
+       from dc3 import ashrae_db2_path
+
+       path = ashrae_db2_path()
+       print(path.name)
+
+    Expected output:
+
+    .. code-block:: text
+
+       ashrae_db2.csv
     """
 
     return Path(resources.files("dc3.data").joinpath(ASHRAE_DB2_FILENAME))
@@ -91,9 +112,58 @@ def load_ashrae_db2(
     Parameters
     ----------
     nrows:
-        Optional number of rows to load. Useful for examples and quick UI tests.
+        Default is ``None``. Optional number of rows to load. Useful for
+        examples and quick UI tests.
     columns:
-        Optional source column subset to read.
+        Default is ``None``. Optional source column subset to read.
+
+    Returns
+    -------
+    pandas.DataFrame
+        ASHRAE DB II source data.
+
+    .. note::
+
+       The pip distribution is named ``dc3model_v1``, but users import it as
+       ``dc3``.
+
+    Examples
+    --------
+    Load a small sample:
+
+    .. code-block:: python
+
+       # python -m pip install dc3model_v1
+       from dc3 import load_ashrae_db2
+
+       df = load_ashrae_db2(nrows=3)
+       print(df.shape[0])
+       print("Thermal sensation" in df.columns)
+
+    Expected output:
+
+    .. code-block:: text
+
+       3
+       True
+
+    Load selected columns:
+
+    .. code-block:: python
+
+       from dc3 import load_ashrae_db2
+
+       df = load_ashrae_db2(
+           nrows=2,
+           columns=["Country", "City", "Thermal sensation"],
+       )
+       print(set(df.columns) == {"Country", "City", "Thermal sensation"})
+
+    Expected output:
+
+    .. code-block:: text
+
+       True
     """
 
     csv_resource = resources.files("dc3.data").joinpath(ASHRAE_DB2_FILENAME)
@@ -107,7 +177,33 @@ def load_ashrae_db2(
 
 
 def ashrae_default_mapping() -> dict[str, str]:
-    """Return canonical DC3 field mappings for the packaged ASHRAE DB II file."""
+    """Return canonical DC3 field mappings for the packaged ASHRAE DB II file.
+
+    Returns
+    -------
+    dict[str, str]
+        Mapping from DC3 canonical fields to ASHRAE DB II source columns.
+
+    Examples
+    --------
+    .. code-block:: python
+
+       # python -m pip install dc3model_v1
+       from dc3 import ashrae_default_mapping
+
+       mapping = ashrae_default_mapping()
+       print(mapping["thermal_sensation"])
+       print(mapping["thermal_preference"])
+       print(mapping["thermal_acceptability"])
+
+    Expected output:
+
+    .. code-block:: text
+
+       Thermal sensation
+       Thermal preference
+       Thermal sensation acceptability
+    """
 
     return dict(ASHRAE_DEFAULT_MAPPING)
 
@@ -123,6 +219,44 @@ def subset_ashrae_db2(
     ``filters`` maps raw ASHRAE column names to accepted values. Values are
     compared as strings so that categorical data with mixed source types can be
     filtered consistently.
+
+    Parameters
+    ----------
+    countries:
+        Default is ``None``. Optional country names to keep.
+    filters:
+        Default is ``None``. Mapping from raw source column names to accepted
+        values.
+    nrows:
+        Default is ``None``. Optional number of source rows to load before
+        filtering.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Filtered ASHRAE DB II records.
+
+    Examples
+    --------
+    .. code-block:: python
+
+       # python -m pip install dc3model_v1
+       from dc3 import subset_ashrae_db2
+
+       subset = subset_ashrae_db2(
+           countries=["India"],
+           filters={"Season": ["Summer"]},
+           nrows=5000,
+       )
+       print(set(subset["Country"].dropna().unique()) <= {"India"})
+       print("Summer" in set(subset["Season"].dropna().astype(str)))
+
+    Expected output:
+
+    .. code-block:: text
+
+       True
+       True
     """
 
     df = load_ashrae_db2(nrows=nrows)
@@ -144,7 +278,50 @@ def create_ashrae_subset_zip(
     dataset_name: str = "ashrae_dc3_subset",
     manifest: Mapping | None = None,
 ) -> bytes:
-    """Return a ZIP archive containing a CSV subset and attribution note."""
+    """Return a ZIP archive containing a CSV subset and attribution note.
+
+    Parameters
+    ----------
+    df:
+        Dataframe to write into the ZIP archive.
+    dataset_name:
+        Default is ``"ashrae_dc3_subset"``. Used as the CSV filename inside
+        the ZIP archive.
+    manifest:
+        Default is ``None``. Optional metadata to merge into
+        ``manifest.json``.
+
+    Returns
+    -------
+    bytes
+        ZIP archive bytes containing ``<dataset_name>.csv``,
+        ``ATTRIBUTION.txt``, and ``manifest.json``.
+
+    Examples
+    --------
+    .. code-block:: python
+
+       # python -m pip install dc3model_v1
+       from io import BytesIO
+       import zipfile
+       from dc3 import create_ashrae_subset_zip, load_ashrae_db2
+
+       df = load_ashrae_db2(nrows=2)
+       archive_bytes = create_ashrae_subset_zip(
+           df,
+           dataset_name="sample_ashrae",
+           manifest={"country_filter": "none"},
+       )
+
+       with zipfile.ZipFile(BytesIO(archive_bytes)) as archive:
+           print(sorted(archive.namelist()))
+
+    Expected output:
+
+    .. code-block:: text
+
+       ['ATTRIBUTION.txt', 'manifest.json', 'sample_ashrae.csv']
+    """
 
     buffer = BytesIO()
     with zipfile.ZipFile(buffer, mode="w", compression=zipfile.ZIP_DEFLATED) as archive:
@@ -167,7 +344,39 @@ def create_ashrae_subset_zip(
 
 
 def load_demo_data() -> pd.DataFrame:
-    """Return a tiny synthetic dataset for examples and documentation."""
+    """Return a tiny synthetic dataset for examples and documentation.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Seven-row synthetic comfort dataframe with the required DC3 columns and
+        several optional grouping/environmental columns.
+
+    Examples
+    --------
+    .. code-block:: python
+
+       # python -m pip install dc3model_v1
+       from dc3 import load_demo_data, process_dataframe
+
+       df = load_demo_data()
+       columns = {
+           "thermal_sensation": "Thermal sensation",
+           "thermal_preference": "Thermal preference",
+           "thermal_acceptability": "Thermal acceptability",
+       }
+       processed = process_dataframe(df, columns)
+
+       print(df.shape)
+       print(processed["dc3_label"].head(3).tolist())
+
+    Expected output:
+
+    .. code-block:: text
+
+       (7, 11)
+       ['C+', 'D', 'E-']
+    """
 
     return pd.DataFrame(
         {

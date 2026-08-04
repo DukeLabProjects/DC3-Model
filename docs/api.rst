@@ -73,6 +73,10 @@ Plot Export
 .. autosummary::
    :toctree: generated
 
+   dc3.plot_dc3_distribution
+   dc3.plot_dc3_matrix
+   dc3.plot_observed_comfort_distribution
+   dc3.plot_z_class_matches
    dc3.export_figure
 
 Live

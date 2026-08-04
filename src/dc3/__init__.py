@@ -37,6 +37,8 @@ from dc3.viz import (
     environmental_summary,
     z_class_records,
     z_class_summary,
+    plot_dc3_distribution,
+    plot_dc3_matrix,
     observed_comfort_distribution,
     plot_observed_comfort_distribution,
     plot_z_class_matches,
@@ -73,6 +75,8 @@ __all__ = [
     "load_demo_data",
     "observed_comfort",
     "observed_comfort_distribution",
+    "plot_dc3_distribution",
+    "plot_dc3_matrix",
     "plot_observed_comfort_distribution",
     "plot_z_class_matches",
     "process_dataframe",
@@ -89,4 +93,4 @@ __all__ = [
     "z_class_summary",
 ]
 
-__version__ = "0.1.0"
+__version__ = "0.1.2"

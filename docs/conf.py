@@ -12,7 +12,7 @@ sys.path.insert(0, str(ROOT / "src"))
 project = "DC3 Model"
 author = "Ojo Patrick Duke"
 copyright = "2026, Ojo Patrick Duke"
-release = "0.1.0"
+release = "0.1.2"
 
 extensions = [
     "sphinx.ext.autodoc",

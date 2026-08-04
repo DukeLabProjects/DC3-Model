@@ -36,6 +36,38 @@ def observed_comfort(thermal_preference, thermal_acceptability) -> bool:
     occupant reports no desired thermal change and marks the environment as
     acceptable. Every other combination is treated as uncomfortable for
     operational control purposes.
+
+    Parameters
+    ----------
+    thermal_preference:
+        Thermal preference vote. Accepted values include ``"cooler"``,
+        ``"warmer"``, ``"no_change"``, ``"no change"``, ``-1``, ``0``,
+        and ``1``.
+    thermal_acceptability:
+        Acceptability vote. Accepted values include ``1``, ``0``,
+        ``True``, ``False``, ``"acceptable"``, and ``"unacceptable"``.
+
+    Returns
+    -------
+    bool
+        ``True`` when the occupant is observed as comfortable.
+
+    Examples
+    --------
+    .. code-block:: python
+
+       # python -m pip install dc3model_v1
+       from dc3 import observed_comfort
+
+       print(observed_comfort("no_change", 1))
+       print(observed_comfort("cooler", 1))
+
+    Expected output:
+
+    .. code-block:: text
+
+       True
+       False
     """
 
     preference = normalize_preference(thermal_preference).value
@@ -44,7 +76,40 @@ def observed_comfort(thermal_preference, thermal_acceptability) -> bool:
 
 
 def thermal_sensation_label(thermal_sensation) -> str:
-    """Return the DC3 letter label ``A`` through ``G`` for thermal sensation."""
+    """Return the DC3 letter label ``A`` through ``G`` for thermal sensation.
+
+    Parameters
+    ----------
+    thermal_sensation:
+        Thermal sensation vote on the ASHRAE 7-point scale. Accepted values
+        include integers from ``-3`` to ``3`` and common labels such as
+        ``"cold"``, ``"neutral"``, and ``"hot"``.
+
+    Returns
+    -------
+    str
+        The DC3 sensation letter. ``A`` is coldest, ``D`` is neutral, and
+        ``G`` is hottest.
+
+    Examples
+    --------
+    .. code-block:: python
+
+       # python -m pip install dc3model_v1
+       from dc3 import thermal_sensation_label
+
+       print(thermal_sensation_label(-3))
+       print(thermal_sensation_label("neutral"))
+       print(thermal_sensation_label("hot"))
+
+    Expected output:
+
+    .. code-block:: text
+
+       A
+       D
+       G
+    """
 
     sensation = normalize_thermal_sensation(thermal_sensation).value
     return THERMAL_SENSATION_TO_LABEL[sensation]
@@ -56,6 +121,64 @@ def classify_dc3(thermal_sensation, thermal_preference, thermal_acceptability) -
     Parameters are normalised before classification, so common input variants
     such as ``"no change"``, ``"acceptable"``, and ``"slightly warm"`` are
     accepted.
+
+    Parameters
+    ----------
+    thermal_sensation:
+        Thermal sensation vote on the 7-point scale, from cold ``-3`` to hot
+        ``3``.
+    thermal_preference:
+        Desired direction of change: ``"cooler"``, ``"no_change"``, or
+        ``"warmer"``. Text variants such as ``"no change"`` are accepted.
+    thermal_acceptability:
+        Acceptability vote. Use ``1``/``True`` for acceptable and
+        ``0``/``False`` for unacceptable.
+
+    Returns
+    -------
+    str
+        DC3 label such as ``"D"``, ``"E-"``, or ``"Z"``.
+
+    .. note::
+
+       ``Z`` is returned when the occupant asks for no change but marks the
+       condition unacceptable. This is preserved as a review/flag class.
+
+    Examples
+    --------
+    Single datapoint:
+
+    .. code-block:: python
+
+       # python -m pip install dc3model_v1
+       from dc3 import classify_dc3
+
+       label = classify_dc3(
+           thermal_sensation=0,
+           thermal_preference="no_change",
+           thermal_acceptability=1,
+       )
+       print(label)
+
+    Expected output:
+
+    .. code-block:: text
+
+       D
+
+    Z-class datapoint:
+
+    .. code-block:: python
+
+       from dc3 import classify_dc3
+
+       print(classify_dc3(0, "no_change", 0))
+
+    Expected output:
+
+    .. code-block:: text
+
+       Z
     """
 
     sensation = normalize_thermal_sensation(thermal_sensation).value
@@ -77,7 +200,36 @@ def classify_dc3(thermal_sensation, thermal_preference, thermal_acceptability) -
 
 
 def encode_dc3(label: str) -> int:
-    """Encode a DC3 label into its numeric code."""
+    """Encode a DC3 label into its numeric code.
+
+    Parameters
+    ----------
+    label:
+        DC3 class label, for example ``"A-"``, ``"D"``, ``"G+"``, or
+        ``"Z"``.
+
+    Returns
+    -------
+    int
+        Numeric DC3 code from ``1`` to ``22``.
+
+    Examples
+    --------
+    .. code-block:: python
+
+       # python -m pip install dc3model_v1
+       from dc3 import encode_dc3
+
+       print(encode_dc3("D"))
+       print(encode_dc3("Z"))
+
+    Expected output:
+
+    .. code-block:: text
+
+       11
+       22
+    """
 
     normalised = _normalise_label(label)
     try:
@@ -87,7 +239,39 @@ def encode_dc3(label: str) -> int:
 
 
 def decode_dc3(code: int) -> dict:
-    """Decode a numeric DC3 code into model components."""
+    """Decode a numeric DC3 code into model components.
+
+    Parameters
+    ----------
+    code:
+        Integer DC3 code from ``1`` to ``22``.
+
+    Returns
+    -------
+    dict
+        Structured DC3 description with label, thermal sensation,
+        preference, observed comfort, and recommended direction.
+
+    Examples
+    --------
+    .. code-block:: python
+
+       # python -m pip install dc3model_v1
+       from dc3 import decode_dc3
+
+       decoded = decode_dc3(11)
+       print(decoded["label"])
+       print(decoded["thermal_sensation"])
+       print(decoded["observed_comfort"])
+
+    Expected output:
+
+    .. code-block:: text
+
+       D
+       0
+       True
+    """
 
     if isinstance(code, bool):
         raise DC3InputError("DC3 code must be an integer from 1 to 22")
@@ -105,7 +289,40 @@ def decode_dc3(code: int) -> dict:
 
 
 def describe_dc3(label: str) -> dict:
-    """Return a structured description for a DC3 label."""
+    """Return a structured description for a DC3 label.
+
+    Parameters
+    ----------
+    label:
+        DC3 class label such as ``"C+"``, ``"D"``, or ``"Z"``.
+
+    Returns
+    -------
+    dict
+        Model components for the label, including ``code``,
+        ``observed_comfort``, ``comfort_zone``, and
+        ``recommended_direction``.
+
+    Examples
+    --------
+    .. code-block:: python
+
+       # python -m pip install dc3model_v1
+       from dc3 import describe_dc3
+
+       description = describe_dc3("E-")
+       print(description["code"])
+       print(description["thermal_sensation_description"])
+       print(description["recommended_direction"])
+
+    Expected output:
+
+    .. code-block:: text
+
+       13
+       slightly warm
+       cooler
+    """
 
     label = _normalise_label(label)
     if label == "Z":
@@ -154,8 +371,49 @@ def dc3_codebook(*, as_dataframe: bool = False):
     Parameters
     ----------
     as_dataframe:
-        When true, return a pandas dataframe. By default a list of dictionaries
-        is returned so the core codebook has no hard dependency on pandas.
+        Default is ``False``. When ``True``, return a pandas dataframe. By
+        default, a list of dictionaries is returned so the core codebook has
+        no hard dependency on pandas.
+
+    Returns
+    -------
+    list[dict] or pandas.DataFrame
+        Complete codebook for labels ``A-`` through ``G+`` and ``Z``.
+
+    Examples
+    --------
+    Default list output:
+
+    .. code-block:: python
+
+       # python -m pip install dc3model_v1
+       from dc3 import dc3_codebook
+
+       codebook = dc3_codebook()
+       print(len(codebook))
+       print(codebook[10]["dc3_label"], codebook[10]["dc3_code"])
+
+    Expected output:
+
+    .. code-block:: text
+
+       22
+       D 11
+
+    Dataframe output:
+
+    .. code-block:: python
+
+       from dc3 import dc3_codebook
+
+       codebook = dc3_codebook(as_dataframe=True)
+       print(codebook.loc[codebook["dc3_label"] == "Z", "dc3_code"].iloc[0])
+
+    Expected output:
+
+    .. code-block:: text
+
+       22
     """
 
     rows = []

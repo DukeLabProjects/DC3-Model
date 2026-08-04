@@ -156,7 +156,38 @@ ASHRAE_CITY_COORDINATES = {
 
 
 def country_to_iso3(country: object) -> str | None:
-    """Return an ISO-3 country code for a known country label."""
+    """Return an ISO-3 country code for a known country label.
+
+    Parameters
+    ----------
+    country:
+        Country name or common country alias, for example ``"India"``,
+        ``"USA"``, or ``"United Kingdom"``.
+
+    Returns
+    -------
+    str or None
+        ISO-3 code when the country is known; otherwise ``None``.
+
+    Examples
+    --------
+    .. code-block:: python
+
+       # python -m pip install dc3model_v1
+       from dc3 import country_to_iso3
+
+       print(country_to_iso3("India"))
+       print(country_to_iso3("United Kingdom"))
+       print(country_to_iso3("Unknownland"))
+
+    Expected output:
+
+    .. code-block:: text
+
+       IND
+       GBR
+       None
+    """
 
     key = _normalise_key(country)
     for name, code in COUNTRY_ISO3.items():
@@ -166,7 +197,43 @@ def country_to_iso3(country: object) -> str | None:
 
 
 def city_coordinates(country: object | None, city: object) -> tuple[float, float] | None:
-    """Return approximate coordinates for a known country-city pair."""
+    """Return approximate coordinates for a known country-city pair.
+
+    Parameters
+    ----------
+    country:
+        Country name. Use ``None`` to search by city only.
+    city:
+        City name.
+
+    Returns
+    -------
+    tuple[float, float] or None
+        Approximate ``(latitude, longitude)`` pair for known cities.
+
+    .. note::
+
+       Coordinates are city-centre approximations for aggregate maps. They are
+       not intended for building-level geocoding.
+
+    Examples
+    --------
+    .. code-block:: python
+
+       # python -m pip install dc3model_v1
+       from dc3 import city_coordinates
+
+       lat, lon = city_coordinates("India", "Delhi")
+       print(round(lat, 3))
+       print(round(lon, 3))
+
+    Expected output:
+
+    .. code-block:: text
+
+       28.614
+       77.209
+    """
 
     city_key = _normalise_key(city)
     country_key = _normalise_key(country)
@@ -193,6 +260,56 @@ def enrich_geography(
     Existing user-mapped country code, latitude, or longitude columns are left
     untouched. Derived columns are added only when enough known geography is
     available.
+
+    Parameters
+    ----------
+    df:
+        Source dataframe.
+    columns:
+        Existing canonical field mapping. Include ``country`` and optionally
+        ``city`` for enrichment.
+    country_code_column:
+        Default is ``"dc3_country_code"``. Name for derived ISO-3 values.
+    latitude_column:
+        Default is ``"dc3_latitude"``. Name for derived latitude values.
+    longitude_column:
+        Default is ``"dc3_longitude"``. Name for derived longitude values.
+
+    Returns
+    -------
+    tuple[pandas.DataFrame, dict[str, str]]
+        Enriched dataframe and updated canonical mapping.
+
+    Examples
+    --------
+    .. code-block:: python
+
+       # python -m pip install dc3model_v1
+       import pandas as pd
+       from dc3 import enrich_geography
+
+       df = pd.DataFrame(
+           {
+               "Country": ["India", "USA"],
+               "City": ["Delhi", "San Francisco"],
+           }
+       )
+       enriched, mapping = enrich_geography(
+           df,
+           columns={"country": "Country", "city": "City"},
+       )
+
+       print(mapping["country_code"])
+       print(round(enriched.loc[0, "dc3_latitude"], 3))
+       print(enriched.loc[1, "dc3_country_code"])
+
+    Expected output:
+
+    .. code-block:: text
+
+       dc3_country_code
+       28.614
+       USA
     """
 
     enriched = df.copy()

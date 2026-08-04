@@ -1,6 +1,20 @@
 Changelog
 =========
 
+0.1.2
+-----
+
+Documentation and API usability release.
+
+- Expanded API reference docstrings with runnable single-record and small
+  dataframe examples.
+- Expanded the examples chapter into a copy-paste cookbook for core
+  classification, dataframe processing, ASHRAE DB II loading, geography,
+  observed comfort, Z-class matching, live snapshots, and plotting.
+- Added regression tests for representative documentation examples.
+- Retained normalised thermal sensation labels on Z-class processed rows so
+  Z-class matching tables remain easier to interpret.
+
 0.1.0
 -----
 
