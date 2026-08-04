@@ -42,6 +42,12 @@ python -m pip install -e .[ml,viz,docs,test]
 
 The package documentation lives in `docs/`.
 
+Hosted documentation will be available at:
+
+```text
+https://dukelabprojects.github.io/DC3-Model/
+```
+
 The Streamlit user-facing app now lives in the sibling `DC3-App` project so it
 can be hosted, versioned, and cited separately from the reusable Python
 package.
