@@ -2,11 +2,11 @@ Companion App
 =============
 
 The Streamlit companion app now lives in a separate project, ``DC3-App``. This
-package repository, ``DC3-Project``, contains the reusable ``dc3-model`` Python
+package repository, ``DC3-Project``, contains the reusable ``dc3model_v1`` Python
 library: classification rules, validation contracts, dataset loaders,
 geography helpers, live snapshot utilities, and package API documentation.
 
-The app repository depends on the installed ``dc3-model`` package for
+The app repository depends on the installed ``dc3model_v1`` package for
 classification, observed-comfort computation, Z-class matching, ASHRAE DB II
 loading, and figure export. It does not maintain a separate DC3 rule
 implementation.

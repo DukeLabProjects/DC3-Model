@@ -44,7 +44,7 @@ jobs:
       - name: Upload built distributions
         uses: actions/upload-artifact@v4
         with:
-          name: dc3-model-dist
+          name: dc3model-v1-dist
           path: dist/
 
   publish-testpypi:
@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: testpypi
-      url: https://test.pypi.org/p/dc3-model
+      url: https://test.pypi.org/p/dc3model-v1
     permissions:
       id-token: write
 
@@ -61,7 +61,7 @@ jobs:
       - name: Download built distributions
         uses: actions/download-artifact@v4
         with:
-          name: dc3-model-dist
+          name: dc3model-v1-dist
           path: dist/
 
       - name: Publish to TestPyPI

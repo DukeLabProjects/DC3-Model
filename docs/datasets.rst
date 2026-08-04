@@ -38,7 +38,7 @@ and multiple temperature measurements.
 Direct Data Access
 ------------------
 
-The packaged ASHRAE DB II file is distributed inside ``dc3-model`` and can be
+The packaged ASHRAE DB II file is distributed inside ``dc3model_v1`` and can be
 loaded directly after installation. Prefer ``load_ashrae_db2`` for normal
 analysis because it reads the packaged resource without requiring users to know
 where the package is installed:

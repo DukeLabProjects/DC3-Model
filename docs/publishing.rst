@@ -6,7 +6,7 @@ install the package with:
 
 .. code-block:: bash
 
-   python -m pip install dc3-model
+   python -m pip install dc3model_v1
 
 The import name remains:
 
@@ -17,7 +17,7 @@ The import name remains:
 Package Name
 ------------
 
-The current distribution name is ``dc3-model``. Final ownership is only
+The current distribution name is ``dc3model_v1``. Final ownership is only
 secured after the first successful upload to PyPI.
 
 Pre-Release Checklist
@@ -79,7 +79,7 @@ Test the install:
 
 .. code-block:: bash
 
-   python -m pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ dc3-model
+   python -m pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ dc3model_v1
 
 Upload To PyPI
 --------------
@@ -96,7 +96,7 @@ Install from PyPI:
 
 .. code-block:: bash
 
-   python -m pip install dc3-model
+   python -m pip install dc3model_v1
 
 Install the independent app after publishing it separately:
 

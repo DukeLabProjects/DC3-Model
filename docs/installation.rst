@@ -82,12 +82,12 @@ Equivalent module form:
 Upgrade The App
 ---------------
 
-The app imports the installed ``dc3-model`` package. When a new package version
+The app imports the installed ``dc3model_v1`` package. When a new package version
 is released, upgrade the package in the app environment and relaunch the app:
 
 .. code-block:: bash
 
-   python -m pip install --upgrade dc3-model
+   python -m pip install --upgrade dc3model_v1
    dc3-model-app
 
 Build Documentation
