@@ -1,0 +1,39 @@
+<nav class="dc3-sidebar-nav" aria-label="DC3 app documentation navigation">
+  <p class="dc3-sidebar-title">App Documentation</p>
+
+  <details open>
+    <summary>Getting Started</summary>
+    <ul>
+      <li><a href="{{ pathto('quickstart') }}">Quickstart</a></li>
+      <li><a href="{{ pathto('workflow') }}">Analysis Workflow</a></li>
+    </ul>
+  </details>
+
+  <details open>
+    <summary>Data Setup</summary>
+    <ul>
+      <li><a href="{{ pathto('data_sources') }}">Data Sources</a></li>
+      <li><a href="{{ pathto('mapping') }}">Column Mapping</a></li>
+      <li><a href="{{ pathto('filters') }}">Dynamic Filters</a></li>
+      <li><a href="{{ pathto('state') }}">Saved State</a></li>
+    </ul>
+  </details>
+
+  <details open>
+    <summary>Analysis Views</summary>
+    <ul>
+      <li><a href="{{ pathto('visualisations') }}">Visualisations</a></li>
+      <li><a href="{{ pathto('maps') }}">Maps</a></li>
+      <li><a href="{{ pathto('live_operation') }}">Live Operation</a></li>
+      <li><a href="{{ pathto('exports') }}">Exports</a></li>
+    </ul>
+  </details>
+
+  <details>
+    <summary>Reference</summary>
+    <ul>
+      <li><a href="{{ pathto('maintenance') }}">Documentation Maintenance</a></li>
+      <li><a href="{{ pathto('package_docs') }}">Package Documentation</a></li>
+    </ul>
+  </details>
+</nav>

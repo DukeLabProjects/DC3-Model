@@ -1,0 +1,21 @@
+ASHRAE Global Thermal Comfort Database II attribution
+
+Dataset citation:
+Parkinson, Thomas; Tartarini, Federico; Foeldvary Licina, Veronika et al.
+(2022). ASHRAE global database of thermal comfort field measurements
+[Dataset]. Dryad. https://doi.org/10.6078/D1F671
+
+Primary reference:
+Foeldvary Licina, V. et al. (2018). Development of the ASHRAE Global
+Thermal Comfort Database II. Building and Environment, 142, 502-512.
+https://doi.org/10.1016/j.buildenv.2018.06.022
+
+Source:
+Dryad dataset page: https://datadryad.org/dataset/doi:10.6078/D1F671
+Official repository: https://github.com/CenterForTheBuiltEnvironment/ashrae-db-II
+
+Notes:
+The ASHRAE Global Thermal Comfort Database II combines indoor environmental
+measurements with right-here-right-now subjective occupant evaluations from
+buildings around the world. Any redistributed subset or derived work should
+retain this attribution note and follow the source dataset license/terms.

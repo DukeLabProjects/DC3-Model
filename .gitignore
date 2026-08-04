@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+build/
+dist/
+*.egg-info/
+docs/_build/
+app_docs/
+src/dc3/app/
+tmp_paper_page_*.png
