@@ -45,3 +45,8 @@ The package documentation lives in `docs/`.
 The Streamlit user-facing app now lives in the sibling `DC3-App` project so it
 can be hosted, versioned, and cited separately from the reusable Python
 package.
+
+## License
+
+DC3 Model is released under the Apache License 2.0. Packaged third-party
+datasets retain their own attribution and notice requirements.

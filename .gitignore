@@ -6,6 +6,7 @@ htmlcov/
 .venv/
 build/
 dist/
+dist_check*/
 *.egg-info/
 docs/_build/
 app_docs/
