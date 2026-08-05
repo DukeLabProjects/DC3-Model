@@ -4,6 +4,27 @@ Model Specification
 This page documents the DC3 model rules implemented from Duke et al. (2026).
 The reference citation is provided in :doc:`references`.
 
+Notation
+--------
+
+For one occupant response, DC3 Model uses three subjective inputs:
+
+``TS``
+   Thermal sensation vote on the seven-point ASHRAE scale, where
+   :math:`TS \in \{-3,-2,-1,0,1,2,3\}`.
+
+``TP``
+   Thermal preference, normalised to one of ``cooler``, ``no_change``,
+   or ``warmer``.
+
+``TA``
+   Thermal acceptability, normalised to :math:`TA = 1` for acceptable and
+   :math:`TA = 0` for unacceptable.
+
+The package first normalises user input values, then applies the deterministic
+rules below. The normalised values are retained in the processed dataframe so
+users can audit how raw data were interpreted.
+
 Observed Comfort
 ----------------
 
@@ -19,6 +40,16 @@ An observation is comfortable only when both statements are true:
 Every other combination is treated as uncomfortable for control purposes.
 This includes records where the environment is marked acceptable but the
 occupant still requests warmer or cooler conditions.
+
+In compact form:
+
+.. math::
+
+   OC =
+   \begin{cases}
+   1, & TP = \mathrm{no\_change} \ \mathrm{and}\ TA = 1 \\
+   0, & \mathrm{otherwise}
+   \end{cases}
 
 Thermal Sensation Axis
 ----------------------
@@ -53,6 +84,21 @@ The DC3 scale uses seven thermal sensation levels.
      - G
      - hot
 
+The letter mapping can be written as:
+
+.. math::
+
+   L(TS) =
+   \begin{cases}
+   A, & TS=-3 \\
+   B, & TS=-2 \\
+   C, & TS=-1 \\
+   D, & TS=0 \\
+   E, & TS=1 \\
+   F, & TS=2 \\
+   G, & TS=3
+   \end{cases}
+
 Preference Suffix
 -----------------
 
@@ -77,6 +123,17 @@ The suffix encodes occupant preference.
      - Z
      - review the response or survey wording
 
+The suffix mapping is:
+
+.. math::
+
+   S(TP) =
+   \begin{cases}
+   -, & TP=\mathrm{cooler} \\
+   \emptyset, & TP=\mathrm{no\_change} \\
+   +, & TP=\mathrm{warmer}
+   \end{cases}
+
 Z-Class
 -------
 
@@ -87,6 +144,12 @@ unacceptable. The package does not silently reclassify ``Z`` because the
 Duke et al. (2026) framework treats it as a heterogeneous category that may
 reflect survey wording, semantic mismatch, or genuinely mixed occupant
 responses.
+
+Formally, the Z class is assigned before the usual suffix rule:
+
+.. math::
+
+   DC3 = Z \quad \mathrm{if}\quad TP=\mathrm{no\_change}\ \mathrm{and}\ TA=0
 
 Numeric Encoding
 ----------------
@@ -127,6 +190,46 @@ Examples:
    * - Z
      - 22
      - inconsistent or mixed response flag
+
+DC3 Algorithm
+-------------
+
+The complete deterministic procedure implemented in :func:`dc3.classify_dc3`
+is:
+
+.. code-block:: text
+
+   Input: thermal_sensation, thermal_preference, thermal_acceptability
+
+   1. Normalise thermal_sensation to TS in {-3, -2, -1, 0, 1, 2, 3}.
+   2. Normalise thermal_preference to TP in {cooler, no_change, warmer}.
+   3. Normalise thermal_acceptability to TA in {0, 1}.
+   4. Compute observed comfort:
+          OC = 1 if TP == no_change and TA == 1 else 0
+   5. If TP == no_change and TA == 0:
+          DC3 label = Z
+          DC3 code = 22
+      Else:
+          base letter = L(TS)
+          suffix = S(TP)
+          DC3 label = base letter + suffix
+          DC3 code = 3 * (TS + 3) + preference_group(TP)
+
+where:
+
+.. math::
+
+   preference\_group(TP) =
+   \begin{cases}
+   1, & TP=\mathrm{cooler} \\
+   2, & TP=\mathrm{no\_change} \\
+   3, & TP=\mathrm{warmer}
+   \end{cases}
+
+Since :math:`TS + 3` maps thermal sensation from :math:`[-3,3]` to the
+zero-based index :math:`[0,6]`, the non-Z classes are encoded from
+``1`` to ``21``. The Z class is assigned ``22`` and kept outside the regular
+seven-by-three DC3 state space.
 
 Interpretation Of High ML Accuracy
 ----------------------------------
